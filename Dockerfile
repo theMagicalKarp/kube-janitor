@@ -14,9 +14,13 @@ COPY main.go main.go
 
 RUN ["/bin/bash", "-c", "diff -u <(echo -n) <(gofmt -d -s main.go)"]
 ENV CGO_ENABLED=0
+ENV GOOS=linux
 
-RUN go build -o kube-janitor main.go
+RUN GOARCH=arm go build -o bin/kube-janitor-arm main.go
+RUN GOARCH=arm64 go build -o bin/kube-janitor-arm64 main.go
+RUN GOARCH=386 go build -o bin/kube-janitor-386 main.go
+RUN GOARCH=amd64 go build -o bin/kube-janitor-amd64 main.go
 
 FROM scratch
-COPY --from=build /go/src/github.com/theMagicalKarp/kube-janitor/kube-janitor /kube-janitor
-ENTRYPOINT ["/kube-janitor"]
+COPY --from=build /go/src/github.com/theMagicalKarp/kube-janitor/bin /
+ENTRYPOINT ["/kube-janitor-amd64"]
