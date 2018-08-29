@@ -1,2 +1,2 @@
 # kube-janitor
-Kuberentes Job Cleaner
+Kubernetes Job Cleaner
