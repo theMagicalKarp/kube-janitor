@@ -2,7 +2,7 @@ namespace: kube-system
 
 image:
   repository: themagicalkarp/kube-janitor
-  tag: latest
+  tag: v0.0.1
   pullPolicy: IfNotPresent
 
 kubejanitor:
