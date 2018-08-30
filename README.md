@@ -30,9 +30,8 @@ of failure or success.
 
 ## Requirements
 
-* Docker
-* Kubernetes
-* Helm
+* [Kubernetes](https://kubernetes.io/)
+* [Helm](https://helm.sh/)
 
 ## Getting Started
 
@@ -72,6 +71,11 @@ docker build -t kube-janitor:latest .
 ```
 
 ## Local Development with Minikube
+
+### Requirements
+
+* [Minikube](https://github.com/kubernetes/minikube)
+* [Helm](https://helm.sh/)
 
 To build and deploy locally into your Minikube cluster run the following commands.
 
