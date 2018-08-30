@@ -38,7 +38,7 @@ of failure or success.
 
 ```
 helm repo add themagicalkarp https://themagicalkarp.github.io/charts
-helm install themagicalkarp/kube-janitor
+helm upgrade --install kube-janitor themagicalkarp/kube-janitor
 ```
 
 ## Options
@@ -48,7 +48,7 @@ helm install themagicalkarp/kube-janitor
 These are flags you can specify when invoking the kube-janitor binary directly
 located in the docker image.
 
-* `-annotation="kube.janitor.io"` The annotation prefix to use when looking for
+* `-annotation="kube.janitor.io"` The prefix to use when looking for kube-janitor annotations
 * `-namespace=""` The namespace to target for cleanup. By deafult checks all namespaces
 * `-expiration=60` The amount of minutes before a job is considered expired and therefore targeted for deletion.
 * `-verbose` If present logs detailed information on jobs found and deleted
@@ -56,8 +56,7 @@ located in the docker image.
 
 ### Job Annotations
 
-These are annotations you can specify on your jobs to change how
-kube-janitor handles the targeted job.
+These are annotations you can specify per job to configure kube-janitor behavior.
 
 * `kube.janitor.io/expiration` A float, that if specified, overrides the expiration limit for the job
 * `kube.janitor.io/ignore` A boolean, that if true, kube-janitor ignores
@@ -74,16 +73,20 @@ docker build -t kube-janitor:latest .
 
 ## Local Development with Minikube
 
+To build and deploy locally into your Minikube cluster run the following commands.
+
 ```
 eval $(minikube docker-env)
 docker build -t themagicalkarp/kube-janitor:local .
 helm init
-helm install kube-janitor
+helm install kube-janitor --set image.tag="local" --set image.pullPolicy="Never"
 ```
 
 ## What's Next
 
+* Write unit tests
 * Cleanup orphaned Pods from dirty deletions
 * Provide instructions for running outside cluster
 * Automate publishing releases to https://themagicalkarp.github.io/charts
+* Tidy up documentation
 
