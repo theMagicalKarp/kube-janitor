@@ -1,0 +1,23 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "chart.fullname" . }}
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: "{{ .Values.cron.schedule }}"
+  jobTemplate:
+    metadata:
+      annotations:
+        # k8s cron jobs are configured to be cleaned up automatically
+        {{ .Values.kubejanitor.annotation}}/ignore: "true"
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ template "chart.fullname" . }}
+          restartPolicy: Never
+          containers:
+          - name: {{ .Chart.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            command: ["/kube-janitor", "-verbose"]
+            resources:
+{{ toYaml .Values.resources | indent 14 }}
