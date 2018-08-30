@@ -6,10 +6,6 @@ metadata:
 spec:
   schedule: "{{ .Values.cron.schedule }}"
   jobTemplate:
-    metadata:
-      annotations:
-        # k8s cron jobs are configured to be cleaned up automatically
-        {{ .Values.kubejanitor.annotation}}/ignore: "true"
     spec:
       template:
         spec:

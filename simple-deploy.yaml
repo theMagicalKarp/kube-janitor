@@ -42,10 +42,6 @@ metadata:
 spec:
   schedule: "*/1 * * * *"
   jobTemplate:
-    metadata:
-      annotations:
-        # k8s cron jobs are configured to be cleaned up automatically
-        kube.janitor.io/ignore: "true"
     spec:
       template:
         spec:
