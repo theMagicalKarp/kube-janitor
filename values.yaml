@@ -3,7 +3,7 @@ namespace: kube-system
 image:
   repository: themagicalkarp/kube-janitor
   tag: latest
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 kubejanitor:
   dryrun: false

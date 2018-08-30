@@ -71,7 +71,7 @@ func FindExpiredJobs(jobs []v1.Job, maxAge float64, annotation string) []v1.Job 
 
 func main() {
 	namespace := flag.String(
-		"namesapce",
+		"namespace",
 		"",
 		"Namespace to target when deleting jobs (by default all namespaces are targeted)",
 	)
