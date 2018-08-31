@@ -35,9 +35,21 @@ of failure or success.
 
 ## Getting Started
 
+To immediately install kube-janitor run the following commands.
+
 ```
 helm repo add themagicalkarp https://themagicalkarp.github.io/charts
 helm upgrade --install kube-janitor themagicalkarp/kube-janitor
+```
+
+This'll register `https://themagicalkarp.github.io/charts` as repo in your
+helm client and deploy kube-janitor to your cluster.
+
+If you don't want to install helm in your cluster you can render the
+configuration and pipe it to kubectl.
+
+```
+helm template kube-janitor --name kube-janitor | kubectl create -f -
 ```
 
 ## Options
