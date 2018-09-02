@@ -1,6 +1,7 @@
 # kube-janitor
 
 [![Build Status](https://travis-ci.com/theMagicalKarp/kube-janitor.svg?branch=master)](https://travis-ci.com/theMagicalKarp/kube-janitor)
+[![Go Report Card](https://goreportcard.com/badge/github.com/theMagicalKarp/kube-janitor)](https://goreportcard.com/report/github.com/theMagicalKarp/kube-janitor)
 
 Kube-janitor is a automation tool to clean up finished jobs in Kubernetes. It is
 designed to be highly configurable and deployable via helm.
@@ -63,7 +64,7 @@ located in the docker image.
 * `-namespace=""` The namespace to target for cleanup. By deafult checks all namespaces
 * `-expiration=60` The amount of minutes before a job is considered expired and therefore targeted for deletion.
 * `-verbose` If present logs detailed information on jobs found and deleted
-* `-dryrun` If present prevents any job deletions from occuring.
+* `-dryrun` If present prevents any job deletions from occuring
 
 ### Job Annotations
 
@@ -100,7 +101,6 @@ helm install kube-janitor --set image.tag="local" --set image.pullPolicy="Never"
 
 ## What's Next
 
-* Write unit tests
 * Cleanup orphaned Pods from dirty deletions
 * Provide instructions for running outside cluster
 * Automate publishing releases to https://themagicalkarp.github.io/charts

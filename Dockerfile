@@ -1,20 +1,23 @@
 FROM golang:1.11.0-stretch as build
 
-RUN go get github.com/Masterminds/glide && \
-    cd /go/src/github.com/Masterminds/glide && \
-    git checkout tags/v0.13.1 && \
+RUN go get github.com/golang/dep && \
+    cd /go/src/github.com/golang/dep/cmd/dep && \
+    git checkout tags/v0.5.0 && \
     go install .
 
 WORKDIR /go/src/github.com/theMagicalKarp/kube-janitor
-COPY glide.yaml glide.yaml
-COPY glide.lock glide.lock
-RUN glide install
+COPY Gopkg.toml Gopkg.toml
+COPY Gopkg.lock Gopkg.lock
+RUN dep ensure --vendor-only
 
 COPY main.go main.go
+COPY main_test.go main_test.go
 
-RUN ["/bin/bash", "-c", "diff -u <(echo -n) <(gofmt -d -s main.go)"]
 ENV CGO_ENABLED=0
 
+RUN go tool vet -all *.go
+RUN ["/bin/bash", "-c", "diff -u <(echo -n) <(gofmt -d -s *.go)"]
+RUN go test -v github.com/theMagicalKarp/kube-janitor/...
 RUN go build -o kube-janitor main.go
 
 FROM scratch
