@@ -39,7 +39,7 @@ To immediately install kube-janitor run the following commands.
 
 ```
 helm repo add themagicalkarp https://themagicalkarp.github.io/charts
-helm upgrade --install kube-janitor themagicalkarp/kube-janitor
+helm upgrade --install kube-janitor --namespace kube-system themagicalkarp/kube-janitor
 ```
 
 This'll register `https://themagicalkarp.github.io/charts` as repo in your
