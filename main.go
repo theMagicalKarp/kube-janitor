@@ -42,16 +42,16 @@ func FindExpiredJobs(jobs []v1.Job, maxAge float64, annotation string) []v1.Job 
 		}
 
 		age := time.Since(job.Status.CompletionTime.Time)
-		expirationAnnotaiton := job.ObjectMeta.Annotations[expirationAnnotationName]
+		expirationAnnotation := job.ObjectMeta.Annotations[expirationAnnotationName]
 
-		maxAgeOverride, err := strconv.ParseFloat(expirationAnnotaiton, 64)
+		maxAgeOverride, err := strconv.ParseFloat(expirationAnnotation, 64)
 		if err == nil {
 			log.Debugf(
 				"Expiration override for (%s:%s) with annotation (%s) of (%s)",
 				job.ObjectMeta.Namespace,
 				job.ObjectMeta.Name,
 				expirationAnnotationName,
-				expirationAnnotaiton,
+				expirationAnnotation,
 			)
 			if age.Minutes() >= maxAgeOverride {
 				expiredJobs = append(expiredJobs, job)
