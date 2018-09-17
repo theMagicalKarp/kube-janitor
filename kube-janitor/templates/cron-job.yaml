@@ -27,6 +27,10 @@ spec:
               - "{{ .Values.kubejanitor.namespace }}"
               - "-annotation"
               - "{{ .Values.kubejanitor.annotation }}"
+              {{- if .Values.kubejanitor.pendingJobExpiration }}
+              - "-pendingJobExpiration"
+              - "{{ .Values.kubejanitor.pendingJobExpiration }}"
+              {{- end }}
               {{- if .Values.kubejanitor.verbose }}
               - "-verbose"
               {{- end }}

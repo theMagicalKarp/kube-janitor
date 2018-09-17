@@ -10,8 +10,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestNoJobsProvided(t *testing.T) {
-	foundJobs := FindExpiredJobs([]v1.Job{}, 60, "foo.io")
+func _validatorTrue(v1.Job) bool {
+	return true
+}
+
+func _validatorFalse(v1.Job) bool {
+	return false
+}
+
+func TestFindExpiredJobsNoJobsProvided(t *testing.T) {
+	validatorsList := []func(v1.Job) bool{}
+
+	foundJobs := FindExpiredJobs([]v1.Job{}, "foo.io", validatorsList)
 
 	if len(foundJobs) != 0 {
 		t.Errorf("Expected 0 jobs but got %d jobs", len(foundJobs))
@@ -19,133 +29,9 @@ func TestNoJobsProvided(t *testing.T) {
 	}
 }
 
-func TestNilCompletionTime(t *testing.T) {
-	jobs := []v1.Job{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "a",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: nil,
-			},
-		},
-	}
+func TestFindExpiredJobsIgnoreJobs(t *testing.T) {
+	validatorsList := []func(v1.Job) bool{_validatorTrue}
 
-	foundJobs := FindExpiredJobs(jobs, 60, "foo.io")
-
-	if len(foundJobs) != 0 {
-		t.Errorf("Expected 0 jobs but got %d jobs", len(foundJobs))
-		return
-	}
-}
-
-func TestNoExpiredJobs(t *testing.T) {
-	jobs := []v1.Job{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "a",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now()},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "b",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * 30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "c",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour)},
-			},
-		},
-	}
-
-	foundJobs := FindExpiredJobs(jobs, 120, "foo.io")
-
-	if len(foundJobs) != 0 {
-		t.Errorf("Expected 0 jobs but got %d jobs", len(foundJobs))
-		return
-	}
-}
-
-func TestExpiredJobs(t *testing.T) {
-	jobs := []v1.Job{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "a",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now()},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "b",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "c",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -90)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "d",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -24)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "e",
-				Namespace: "default",
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
-			},
-		},
-	}
-
-	foundJobs := FindExpiredJobs(jobs, 60, "foo.io")
-	foundNames := []string{}
-	for _, job := range foundJobs {
-		foundNames = append(foundNames, job.ObjectMeta.Name)
-	}
-
-	sort.Strings(foundNames)
-
-	if strings.Join(foundNames, "|") != "c|d|e" {
-		t.Errorf(
-			"Expected (c|d|e) jobs but got (%s)",
-			strings.Join(foundNames, "|"),
-		)
-		return
-	}
-}
-
-func TestIgnoreJobs(t *testing.T) {
 	jobs := []v1.Job{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -154,7 +40,7 @@ func TestIgnoreJobs(t *testing.T) {
 				Annotations: map[string]string{},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -166,7 +52,7 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -178,7 +64,7 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -190,7 +76,7 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -202,7 +88,7 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -214,7 +100,7 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -226,7 +112,7 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 		{
@@ -238,12 +124,12 @@ func TestIgnoreJobs(t *testing.T) {
 				},
 			},
 			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Hour * -168)},
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
 	}
 
-	foundJobs := FindExpiredJobs(jobs, 60, "foo.io")
+	foundJobs := FindExpiredJobs(jobs, "foo.io", validatorsList)
 	foundNames := []string{}
 	for _, job := range foundJobs {
 		foundNames = append(foundNames, job.ObjectMeta.Name)
@@ -254,111 +140,6 @@ func TestIgnoreJobs(t *testing.T) {
 	if strings.Join(foundNames, "|") != "a|c|e|g|h" {
 		t.Errorf(
 			"Expected (a|c|e|g|h) jobs but got (%s)",
-			strings.Join(foundNames, "|"),
-		)
-		return
-	}
-}
-
-func TestCustomExpirations(t *testing.T) {
-	jobs := []v1.Job{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "a",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "15",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "b",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "90",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "c",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "15.05",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "d",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "45",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "e",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "45.05",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "f",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "this-is-not-a-valid-float",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -30)},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "g",
-				Namespace: "default",
-				Annotations: map[string]string{
-					"foo.io/expiration": "this-is-not-a-valid-float",
-				},
-			},
-			Status: v1.JobStatus{
-				CompletionTime: &metav1.Time{time.Now().Add(time.Minute * -90)},
-			},
-		},
-	}
-
-	foundJobs := FindExpiredJobs(jobs, 60, "foo.io")
-	foundNames := []string{}
-	for _, job := range foundJobs {
-		foundNames = append(foundNames, job.ObjectMeta.Name)
-	}
-
-	sort.Strings(foundNames)
-
-	if strings.Join(foundNames, "|") != "a|c|g" {
-		t.Errorf(
-			"Expected (a|c|g) jobs but got (%s)",
 			strings.Join(foundNames, "|"),
 		)
 		return

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	v1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,80 +14,66 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func FindExpiredJobs(jobs []v1.Job, maxAge float64, annotation string) []v1.Job {
+func FindExpiredJobs(jobList []v1.Job, annotation string, validatorList []func(v1.Job) bool) []v1.Job {
 	expiredJobs := []v1.Job{}
 
-	expirationAnnotationName := fmt.Sprintf("%s/expiration", annotation)
 	ignoreAnnotationName := fmt.Sprintf("%s/ignore", annotation)
 
-	log.Debugf("(%d) jobs found", len(jobs))
+	log.Debugf("(%d) jobs found", len(jobList))
 
-	for _, job := range jobs {
-		ignoreAnnotaiton := job.ObjectMeta.Annotations[ignoreAnnotationName]
-		ignore, err := strconv.ParseBool(ignoreAnnotaiton)
+	for _, job := range jobList {
+		ignoreAnnotation := job.ObjectMeta.Annotations[ignoreAnnotationName]
+		ignore, err := strconv.ParseBool(ignoreAnnotation)
 		if err == nil && ignore {
 			log.Debugf(
 				"Ignoring (%s:%s) with annotation (%s) of (%s)",
 				job.ObjectMeta.Namespace,
 				job.ObjectMeta.Name,
 				ignoreAnnotationName,
-				ignoreAnnotaiton,
+				ignoreAnnotation,
 			)
 			continue
 		}
 
-		if job.Status.CompletionTime == nil {
-			continue
-		}
-
-		age := time.Since(job.Status.CompletionTime.Time)
-		expirationAnnotation := job.ObjectMeta.Annotations[expirationAnnotationName]
-
-		maxAgeOverride, err := strconv.ParseFloat(expirationAnnotation, 64)
-		if err == nil {
-			log.Debugf(
-				"Expiration override for (%s:%s) with annotation (%s) of (%s)",
-				job.ObjectMeta.Namespace,
-				job.ObjectMeta.Name,
-				expirationAnnotationName,
-				expirationAnnotation,
-			)
-			if age.Minutes() >= maxAgeOverride {
+		for _, removeCheck := range validatorList {
+			if removeCheck(job) == true {
 				expiredJobs = append(expiredJobs, job)
+				break
 			}
-			continue
-		}
-
-		if age.Minutes() >= maxAge {
-			expiredJobs = append(expiredJobs, job)
 		}
 	}
 
-	log.Debugf("(%d) expired jobs found", len(expiredJobs))
+	log.Debugf("(%d) jobs to remove", len(expiredJobs))
 
 	return expiredJobs
 }
 
 func main() {
-	namespace := flag.String(
-		"namespace",
-		"",
-		"Namespace to target when deleting jobs (by default all namespaces are targeted)",
-	)
-	expiration := flag.Float64(
-		"expiration",
-		60.0,
-		"Expiration time on jobs (in minutes)",
+	annotation := flag.String(
+		"annotation",
+		"kube.janitor.io",
+		"Annotation prefix to check when deleting jobs",
 	)
 	dryrun := flag.Bool(
 		"dryrun",
 		false,
 		"Logs what jobs will be deleted when fully ran",
 	)
-	annotation := flag.String(
-		"annotation",
-		"kube.janitor.io",
-		"Annotation prefix to check when deleting jobs",
+	expiration := flag.Float64(
+		"expiration",
+		60.0,
+		"Expiration time on jobs (in minutes)",
+	)
+	namespace := flag.String(
+		"namespace",
+		"",
+		"Namespace to target when deleting jobs (by default all namespaces are targeted)",
+	)
+	pendingJobExpiration := flag.Float64(
+		"pendingJobExpiration",
+		-1.0,
+		`Set the time (in minutes) that jobs will be removed if they are still in the pending state.
+        By default, jobs stuck in a pending state are not removed`,
 	)
 	verbose := flag.Bool(
 		"verbose",
@@ -119,14 +104,19 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	targetJobs := FindExpiredJobs(jobList.Items, *expiration, *annotation)
-
-	deletePolicy := metav1.DeletePropagationForeground
+	validatorList := []func(v1.Job) bool{}
+	validatorList = append(validatorList, ExpiredJobs(*expiration, *annotation))
+	if *pendingJobExpiration > -1 {
+		validatorList = append(validatorList, PendingJobs(*pendingJobExpiration, clientset))
+	}
 
 	if *dryrun {
 		log.Warnf("!!! DRY RUN (JOBS WON'T BE DISCARDED) !!!")
 	}
 
+	targetJobs := FindExpiredJobs(jobList.Items, *annotation, validatorList)
+
+	deletePolicy := metav1.DeletePropagationForeground
 	for _, job := range targetJobs {
 		log.Infof("Deleting (%s:%s)", job.ObjectMeta.Namespace, job.ObjectMeta.Name)
 		if *dryrun {

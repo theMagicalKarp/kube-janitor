@@ -10,15 +10,14 @@ COPY Gopkg.toml Gopkg.toml
 COPY Gopkg.lock Gopkg.lock
 RUN dep ensure --vendor-only
 
-COPY main.go main.go
-COPY main_test.go main_test.go
+COPY ./*.go /go/src/github.com/theMagicalKarp/kube-janitor/
 
 ENV CGO_ENABLED=0
 
 RUN go tool vet -all *.go
 RUN ["/bin/bash", "-c", "diff -u <(echo -n) <(gofmt -d -s *.go)"]
 RUN go test -v github.com/theMagicalKarp/kube-janitor/...
-RUN go build -o kube-janitor main.go
+RUN go build -o kube-janitor
 
 FROM scratch
 COPY --from=build /go/src/github.com/theMagicalKarp/kube-janitor/kube-janitor /kube-janitor
