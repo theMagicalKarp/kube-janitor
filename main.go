@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func FindExpiredJobs(jobList []v1.Job, annotation string, validatorList []func(v1.Job) bool) []v1.Job {
+func FindExpiredJobs(jobList []v1.Job, annotation string, validatorList []JobValidator) []v1.Job {
 	expiredJobs := []v1.Job{}
 
 	ignoreAnnotationName := fmt.Sprintf("%s/ignore", annotation)
@@ -36,7 +36,13 @@ func FindExpiredJobs(jobList []v1.Job, annotation string, validatorList []func(v
 		}
 
 		for _, removeCheck := range validatorList {
-			if removeCheck(job) == true {
+			remove, err := removeCheck(job)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if remove {
 				expiredJobs = append(expiredJobs, job)
 				break
 			}
@@ -104,7 +110,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	validatorList := []func(v1.Job) bool{}
+	validatorList := []JobValidator{}
 	validatorList = append(validatorList, ExpiredJobs(*expiration, *annotation))
 	if *pendingJobExpiration > -1 {
 		validatorList = append(validatorList, PendingJobs(*pendingJobExpiration, clientset))

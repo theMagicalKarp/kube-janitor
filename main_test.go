@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"testing"
@@ -10,16 +11,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func _validatorTrue(v1.Job) bool {
-	return true
+func _validatorTrue(v1.Job) (bool, error) {
+	return true, nil
 }
 
-func _validatorFalse(v1.Job) bool {
-	return false
+func _validatorFalse(v1.Job) (bool, error) {
+	return false, nil
+}
+
+func _validatorError(v1.Job) (bool, error) {
+	// Return true so we can assert it is not removed if there is an error
+	return true, errors.New("Error!")
 }
 
 func TestFindExpiredJobsNoJobsProvided(t *testing.T) {
-	validatorsList := []func(v1.Job) bool{}
+	validatorsList := []JobValidator{}
+
+	foundJobs := FindExpiredJobs([]v1.Job{}, "foo.io", validatorsList)
+
+	if len(foundJobs) != 0 {
+		t.Errorf("Expected 0 jobs but got %d jobs", len(foundJobs))
+		return
+	}
+}
+
+func TestFindExpiredJobsError(t *testing.T) {
+	validatorsList := []JobValidator{_validatorError}
 
 	foundJobs := FindExpiredJobs([]v1.Job{}, "foo.io", validatorsList)
 
@@ -30,7 +47,7 @@ func TestFindExpiredJobsNoJobsProvided(t *testing.T) {
 }
 
 func TestFindExpiredJobsIgnoreJobs(t *testing.T) {
-	validatorsList := []func(v1.Job) bool{_validatorTrue}
+	validatorsList := []JobValidator{_validatorTrue}
 
 	jobs := []v1.Job{
 		{

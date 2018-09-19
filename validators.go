@@ -12,14 +12,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func PendingJobs(maxAge float64, kubeClient kubernetes.Interface) func(v1.Job) bool {
-	return func(job v1.Job) bool {
+type JobValidator func(v1.Job) (bool, error)
+
+func PendingJobs(maxAge float64, kubeClient kubernetes.Interface) JobValidator {
+	return func(job v1.Job) (bool, error) {
 		podList, err := kubeClient.CoreV1().Pods("").List(metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("job-name=%s", job.ObjectMeta.Name),
 		})
 
 		if err != nil {
-			log.Fatal(err.Error())
+			return false, err
 		}
 
 		for _, pod := range podList.Items {
@@ -29,21 +31,21 @@ func PendingJobs(maxAge float64, kubeClient kubernetes.Interface) func(v1.Job) b
 				}
 				age := time.Since(pod.ObjectMeta.CreationTimestamp.Time)
 				if age.Minutes() >= maxAge {
-					return true
+					return true, nil
 				}
 			}
 		}
 
-		return false
+		return false, nil
 	}
 }
 
-func ExpiredJobs(maxAge float64, annotation string) func(v1.Job) bool {
+func ExpiredJobs(maxAge float64, annotation string) JobValidator {
 	expirationAnnotationName := fmt.Sprintf("%s/expiration", annotation)
 
-	return func(job v1.Job) bool {
+	return func(job v1.Job) (bool, error) {
 		if job.Status.CompletionTime == nil {
-			return false
+			return false, nil
 		}
 
 		age := time.Since(job.Status.CompletionTime.Time)
@@ -59,15 +61,11 @@ func ExpiredJobs(maxAge float64, annotation string) func(v1.Job) bool {
 				expirationAnnotation,
 			)
 			if age.Minutes() >= maxAgeOverride {
-				return true
+				return true, nil
 			}
-			return false
+			return false, nil
 		}
 
-		if age.Minutes() >= maxAge {
-			return true
-		}
-
-		return false
+		return age.Minutes() >= maxAge, nil
 	}
 }

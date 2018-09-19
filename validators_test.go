@@ -36,7 +36,7 @@ func TestPendingJobs(t *testing.T) {
 	}
 
 	removeCheck := PendingJobs(60, client)
-	remove := removeCheck(job)
+	remove, err := removeCheck(job)
 
 	if remove != true {
 		t.Errorf("Expected true remove check")
@@ -82,7 +82,7 @@ func TestPendingJobsNoneExpired(t *testing.T) {
 	}
 
 	removeCheck := PendingJobs(60, client)
-	remove := removeCheck(job)
+	remove, err := removeCheck(job)
 
 	if remove != false {
 		t.Errorf("Expected false remove check")
@@ -113,7 +113,7 @@ func TestPendingJobsNoCreationTime(t *testing.T) {
 	}
 
 	removeCheck := PendingJobs(60, client)
-	remove := removeCheck(job)
+	remove, err := removeCheck(job)
 
 	if remove != false {
 		t.Errorf("Expected false remove check")
@@ -133,7 +133,7 @@ func TestExpiredJobsNilCompletionTime(t *testing.T) {
 	}
 
 	removeCheck := ExpiredJobs(60, "foo.io")
-	remove := removeCheck(job)
+	remove, _ := removeCheck(job)
 
 	if remove != false {
 		t.Errorf("Expected false remove check")
@@ -176,7 +176,7 @@ func TestExpiredJobsNoneExpired(t *testing.T) {
 	remove := true
 	for _, job := range jobs {
 		remove = true
-		remove = removeCheck(job)
+		remove, _ = removeCheck(job)
 
 		if remove != false {
 			t.Errorf("Expected false remove check")
@@ -238,7 +238,7 @@ func TestExpiredJobs(t *testing.T) {
 	foundNames := []string{}
 	remove := false
 	for _, job := range jobs {
-		remove = removeCheck(job)
+		remove, _ = removeCheck(job)
 		if remove == true {
 			foundNames = append(foundNames, job.ObjectMeta.Name)
 		}
@@ -347,7 +347,7 @@ func TestExpiredJobsCustomExpirations(t *testing.T) {
 	foundNames := []string{}
 	remove := false
 	for _, job := range jobs {
-		remove = removeCheck(job)
+		remove, _ = removeCheck(job)
 		if remove == true {
 			foundNames = append(foundNames, job.ObjectMeta.Name)
 		}
