@@ -44,11 +44,22 @@ func ExpiredJobs(maxAge float64, annotation string) JobValidator {
 	expirationAnnotationName := fmt.Sprintf("%s/expiration", annotation)
 
 	return func(job v1.Job) (bool, error) {
+		var age time.Duration
 		if job.Status.CompletionTime == nil {
+			for _, condition := range job.Status.Conditions {
+				if condition.Reason == "BackoffLimitExceeded" && condition.Status == "True" {
+					age = time.Since(condition.LastProbeTime.Time)
+					break
+				}
+			}
+		} else {
+			age = time.Since(job.Status.CompletionTime.Time)
+		}
+
+		if age == 0 {
 			return false, nil
 		}
 
-		age := time.Since(job.Status.CompletionTime.Time)
 		expirationAnnotation := job.ObjectMeta.Annotations[expirationAnnotationName]
 
 		maxAgeOverride, err := strconv.ParseFloat(expirationAnnotation, 64)

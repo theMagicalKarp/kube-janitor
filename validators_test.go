@@ -141,6 +141,33 @@ func TestExpiredJobsNilCompletionTime(t *testing.T) {
 	}
 }
 
+func TestExpiredJobsNilCompletionTimeConditions(t *testing.T) {
+	job := v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "a",
+			Namespace: "default",
+		},
+		Status: v1.JobStatus{
+			CompletionTime: nil,
+			Conditions: []v1.JobCondition{
+				{
+					Type:   "Failed",
+					Status: "True",
+					Reason: "DeadlineExceeded",
+				},
+			},
+		},
+	}
+
+	removeCheck := ExpiredJobs(60, "foo.io")
+	remove, _ := removeCheck(job)
+
+	if remove != false {
+		t.Errorf("Expected false remove check")
+		return
+	}
+}
+
 func TestExpiredJobsNoneExpired(t *testing.T) {
 	jobs := []v1.Job{
 		{
@@ -232,6 +259,22 @@ func TestExpiredJobs(t *testing.T) {
 				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Hour * -168)},
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "f",
+				Namespace: "default",
+			},
+			Status: v1.JobStatus{
+				Conditions: []v1.JobCondition{
+					{
+						Status:        "True",
+						Type:          "Failed",
+						Reason:        "BackoffLimitExceeded",
+						LastProbeTime: metav1.Time{Time: time.Now().Add(time.Hour * -168)},
+					},
+				},
+			},
+		},
 	}
 
 	removeCheck := ExpiredJobs(60, "foo.io")
@@ -246,9 +289,9 @@ func TestExpiredJobs(t *testing.T) {
 
 	sort.Strings(foundNames)
 
-	if strings.Join(foundNames, "|") != "c|d|e" {
+	if strings.Join(foundNames, "|") != "c|d|e|f" {
 		t.Errorf(
-			"Expected (c|d|e) jobs but got (%s)",
+			"Expected (c|d|e|f) jobs but got (%s)",
 			strings.Join(foundNames, "|"),
 		)
 		return
