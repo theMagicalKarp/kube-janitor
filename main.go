@@ -136,7 +136,7 @@ func main() {
 		err = jobClient.Delete(job.ObjectMeta.Name, deletionOptions)
 
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Warnf(err.Error())
 		}
 	}
 }
