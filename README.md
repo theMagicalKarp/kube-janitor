@@ -61,7 +61,7 @@ These are flags you can specify when invoking the kube-janitor binary directly
 located in the docker image.
 
 * `-annotation="kube.janitor.io"` The prefix to use when looking for kube-janitor annotations
-* `-namespace=""` The namespace to target for cleanup. By deafult checks all namespaces
+* `-namespace=""` The namespace to target for cleanup. By default checks all namespaces
 * `-expiration=60` The amount of minutes before a job is considered expired and therefore targeted for deletion.
 * `-verbose` If present logs detailed information on jobs found and deleted
 * `-dryrun` If present prevents any job deletions from occuring
